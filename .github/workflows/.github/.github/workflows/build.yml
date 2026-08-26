@@ -1,0 +1,66 @@
+.github/workflows/build.yml
+name: Build LineageOS for GT-I9300
+
+on:
+  workflow_dispatch: # GitHub arayüzünden manuel başlatma butonu sağlar
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Free Disk Space (Disk Alanı Temizliği)
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo apt-get clean
+          echo "Disk alanı temizlendi:"
+          df -h
+
+      - name: Install Build Dependencies (Derleme Paketleri)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc bison build-essential ccache curl flex g++-multilib gcc-multilib git gnupg gperf imagemagick lib32ncurses5-dev lib32z1-dev libkrb5-dev libgl1-mesa-dev libxml2-utils xsltproc zip zlib1g-dev python3 python-is-python3
+
+      - name: Install Repo Tool
+        run: |
+          mkdir -p ~/bin
+          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+          chmod a+x ~/bin/repo
+          echo "$HOME/bin" >> $GITHUB_PATH
+
+      - name: Initialize & Sync Source (Kaynak Kod Çekimi)
+        run: |
+          git config --global user.name "BuildBot"
+          git config --global user.email "buildbot@example.com"
+          mkdir ~/android
+          cd ~/android
+          # Hedeflediğin LineageOS dalına (branch) göre değiştirebilirsin:
+          repo init -u https://github.com/LineageOS/android.git -b lineage-22.1 --git-lfs --depth=1
+          
+          # I9300 Local Manifests kopyalama (Eğer reponda local_manifest.xml varsa)
+          mkdir -p .repo/local_manifests
+          if [ -f "$GITHUB_WORKSPACE/local_manifest.xml" ]; then
+            cp $GITHUB_WORKSPACE/local_manifest.xml .repo/local_manifests/
+          fi
+          
+          repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
+
+      - name: Build ROM (Derleme Aşaması)
+        run: |
+          cd ~/android
+          source build/envsetup.sh
+          lunch lineage_i9300-userdebug
+          mka bacon -j$(nproc --all)
+
+      - name: Upload Artifacts (ROM Dosyasını Çıkarma)
+        uses: actions/upload-artifact@v4
+        with:
+          name: LineageOS-i9300-Build
+          path: |
+            ~/android/out/target/product/i9300/*.zip
+            ~/android/out/target/product/i9300/*.img
