@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+  <!-- S3 Device Tree & Kernel Sources -->
+  <project name="html6405/android_device_samsung_i9300" path="device/samsung/i9300" remote="github" revision="lineage-21.0" />
+  <project name="html6405/android_kernel_samsung_smdk4412" path="kernel/samsung/smdk4412" remote="github" revision="lineage-21.0" />
+  <project name="html6405/android_vendor_samsung_i9300" path="vendor/samsung/i9300" remote="github" revision="lineage-21.0" />
+</manifest>
